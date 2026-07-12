@@ -68,6 +68,71 @@ class ConsultationController extends Controller
             'message' => 'Consultation completed successfully.'
         ]);
     }
+
+    /** Save consultaion as draft/paused */
+    public function saveDraft(Request $request, $assignmentId)
+    {
+        $request->validate([
+            'subjective' => 'nullable|string',
+            'objective' => 'nullable|string',
+            'assessment' => 'nullable|string',
+            'plan' => 'nullable|string',
+            'chief_complaint' => 'nullable|string',
+            'icd_code_id' => 'nullable|exists:icd_codes,id',
+        ]);
+
+        DB::transaction(function () use ($request, $assignmentId) {
+
+            $assignment = DoctorAssignment::with('queue')
+                ->findOrFail($assignmentId);
+
+            Consultation::updateOrCreate(
+                [
+                    'doctor_assignment_id' => $assignment->id,
+                ],
+                [
+                    'chief_complaint' => $request->chief_complaint,
+                    'subjective' => $request->subjective,
+                    'objective' => $request->objective,
+                    'assessment' => $request->assessment,
+                    'plan' => $request->plan,
+                    'icd_code_id' => $request->icd_code_id,
+                    'status' => 'draft',
+                ]
+            );
+
+            $assignment->update([
+                'status' => 'paused',
+                'paused_at' => now(),
+            ]);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Consultation draft saved.'
+        ]);
+    }
+
+    /** Resume paused consultation */
+    public function resume($assignmentId)
+    {
+        $assignment = DoctorAssignment::with([
+            'queue.triage.patient',
+            'queue.triage.vitalSign',
+            'consultation.icd',
+        ])->findOrFail($assignmentId);
+
+        $assignment->update([
+            'status' => 'in-progress',
+            'resumed_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $assignment,
+        ]);
+    }
+
      public function show($id)
     {
         $assignment = DoctorAssignment::with([

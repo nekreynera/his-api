@@ -64,6 +64,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/triage', [TriageController::class, 'store']);
 
     Route::post('/vital-signs', [VitalSignController::class, 'store']);
+
+    Route::post('/consultation/{assignment}/draft', [ConsultationController::class, 'saveDraft']);
+
+    Route::post('/consultation/{assignment}/resume', [ConsultationController::class, 'resume']);
 });
 
  

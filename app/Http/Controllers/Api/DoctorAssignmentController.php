@@ -28,7 +28,7 @@ class DoctorAssignmentController extends Controller
             'queue.triage.vitalSign',
         ])
         ->where('doctor_id', $doctor->id)
-        ->whereIn('status', ['assigned', 'in-progress'])
+        ->whereIn('status', ['assigned', 'in-progress','paused'])
         ->whereDate('created_at', today())
         ->orderBy('doctor_queue_no')
         ->get()
@@ -36,7 +36,7 @@ class DoctorAssignmentController extends Controller
 
             $item->status_label = match ($item->status) {
                 'assigned'     => 'Waiting',
-                'in-progress'  => 'Now Serving',
+                'in-progress'  => 'In progress',
                 'paused'       => 'Paused',
                 'done'         => 'Completed',
                 default        => ucfirst($item->status),
@@ -45,14 +45,27 @@ class DoctorAssignmentController extends Controller
             return $item;
         });
 
+        //now serving
+        // Current consultation (if any)
+        $current = DoctorAssignment::where('doctor_id', $doctor->id)
+        ->where('status', 'in-progress')
+        ->whereDate('created_at', today())
+        ->first();
+
         $completedToday = DoctorAssignment::where('doctor_id', $doctor->id)
             ->where('status', 'done')
+            ->whereDate('updated_at', today())
+            ->count();
+        $pausedToday = DoctorAssignment::where('doctor_id', $doctor->id)
+            ->where('status', 'paused')
             ->whereDate('updated_at', today())
             ->count();
 
         return response()->json([
             'queue' => $queue,
             'completed_today' => $completedToday,
+            'paused_today'=>$pausedToday,
+            'now_serving' => $current?->doctor_queue_no,
         ]);
     }
      /**

@@ -14,7 +14,11 @@ class DoctorAssignment extends Model
         'doctor_queue_no',
         'status',
         'assigned_at',
+        'called_at',
         'started_at',
+        'paused_at',
+        'resumed_at',
+        'paused_reason',
         'completed_at',
     ];
 
