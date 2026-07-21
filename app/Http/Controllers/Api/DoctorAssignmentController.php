@@ -26,13 +26,17 @@ class DoctorAssignmentController extends Controller
             'queue.triage.patient',
             'queue.triage.clinic',
             'queue.triage.vitalSign',
+            'consultation.laboratoryRequests.items.laboratory',
         ])
         ->where('doctor_id', $doctor->id)
-        ->whereIn('status', ['assigned', 'in-progress','paused'])
+        ->whereIn('status', ['assigned', 'in-progress','paused','done'])
         ->whereDate('created_at', today())
         ->orderBy('doctor_queue_no')
         ->get()
         ->map(function ($item) {
+             if ($patient = $item->queue?->triage?->patient) {
+                $patient->age = $patient->computed_age;
+            }
 
             $item->status_label = match ($item->status) {
                 'assigned'     => 'Waiting',

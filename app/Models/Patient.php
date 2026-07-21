@@ -49,14 +49,14 @@ class Patient extends Model
     }
 
     // ================= COMPUTED AGE =================
-    public function getComputedAgeAttribute()
-    {
-        if (!$this->birthday) {
-            return $this->age;
-        }
-
-        return Carbon::parse($this->birthday)->age;
+   public function getAgeAttribute()
+{
+    if (!$this->birthday) {
+        return null;
     }
+
+    return Carbon::parse($this->birthday)->age;
+}
 
     // ================= SCOPES =================
     public function scopeFindByBarcode($query, $barcode)
@@ -89,7 +89,7 @@ class Patient extends Model
             'birthday' => $this->birthday ? Carbon::parse($this->birthday)->format('M d, Y') : null,
             'barcode' => $this->barcode,
             'sex' => $this->sex,
-            'age' => $this->computed_age,
+            'age' => $this->age,
             'address' => $this->address,
             'contact_no' => $this->contact_no,
             'civil_status'=>$this->civil_status,

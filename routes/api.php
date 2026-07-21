@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\TriageController;
 use App\Http\Controllers\Api\IcdCodeController;
 use App\Http\Controllers\Api\VitalSignController;
+use App\Http\Controllers\Api\LaboratoryRequestController;
+use App\Http\Controllers\Api\SettingsController;
 
 use LdapRecord\Container;
 use Illuminate\Http\Request;
@@ -55,6 +57,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/consultation/{id}', [ConsultationController::class, 'show']);
 
+    
+    
+
     Route::post('/consultation/{id}/start', [ConsultationController::class, 'start']);
     
     Route::get('/icd-codes', [IcdCodeController::class, 'index']);
@@ -68,8 +73,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/consultation/{assignment}/draft', [ConsultationController::class, 'saveDraft']);
 
     Route::post('/consultation/{assignment}/resume', [ConsultationController::class, 'resume']);
+
+    Route::post('/laboratory-requests',[LaboratoryRequestController::class, 'store']);
+
+    Route::get('/settings',[SettingsController::class, 'index']);
+
+    Route::post('/settings/templates', [SettingsController::class, 'store']);
+
+    Route::put('/settings/templates/{template}', [SettingsController::class, 'update']);
+
+    
+
 });
 
  
 
 
+Route::get('/consultation/{assignment}/pdf', [ConsultationController::class, 'viewPdf']);

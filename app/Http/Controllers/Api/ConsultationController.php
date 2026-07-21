@@ -6,9 +6,33 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\DoctorAssignment;
 use App\Models\Consultation;
+use App\Models\Laboratory;
+use App\Models\SoapTemplate;
+
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ConsultationController extends Controller
 {
+
+    /** View Consultation pdf */
+    public function viewPdf($assignment)
+    {  
+           $consultation = Consultation::with([
+            'assignment.queue.triage.patient',
+            //'assignment.queue.triage.clinic',
+            //'assignment.queue.triage.vitalSign',
+            'assignment.doctor',
+            'icd',
+        ])->where('doctor_assignment_id', $assignment)
+        ->firstOrFail();
+
+        $pdf = Pdf::loadView('pdf.consultation', [
+            'consultation' => $consultation,
+        ]);
+
+        return $pdf->stream('consultation.pdf');
+    }
+
     public function finish(Request $request, $assignmentId)
     {
         $request->validate([
@@ -33,6 +57,12 @@ class ConsultationController extends Controller
                 ],
 
                 [
+                    'consultation_no' => Consultation::where('doctor_assignment_id', $assignment->id)
+                    ->value('consultation_no') ?? $this->generateConsultationNo(),
+
+                    'doctor_id' => $assignment->doctor_id,
+
+                    'clinic_id' => $assignment->queue->triage->clinic_id,
                     'chief_complaint' => $request->chief_complaint,
                     'subjective' => $request->subjective,
                     'objective' => $request->objective,
@@ -91,6 +121,10 @@ class ConsultationController extends Controller
                     'doctor_assignment_id' => $assignment->id,
                 ],
                 [
+                    'consultation_no' => Consultation::where('doctor_assignment_id', $assignment->id)
+                    ->value('consultation_no') ?? $this->generateConsultationNo(),
+                    'doctor_id' => $assignment->doctor_id,
+                    'clinic_id' => $assignment->queue->triage->clinic_id,
                     'chief_complaint' => $request->chief_complaint,
                     'subjective' => $request->subjective,
                     'objective' => $request->objective,
@@ -151,7 +185,7 @@ class ConsultationController extends Controller
         return response()->json($assignment);
     }
 
-      public function start($id)
+    public function start($id)
     {
         $assignment = DoctorAssignment::findOrFail($id);
 
@@ -170,6 +204,21 @@ class ConsultationController extends Controller
             ]);
         }
 
+         // Create consultation if it doesn't exist yet
+        $consultation = Consultation::firstOrCreate(
+            [
+                'doctor_assignment_id' => $assignment->id,
+            ],
+            [
+                'consultation_no' => $this->generateConsultationNo(),
+
+                'doctor_id' => $assignment->doctor_id,
+
+                'clinic_id' => $assignment->queue->triage->clinic_id,
+                'status' => 'draft',
+            ]
+        );
+
         // Reload with all relationships needed by the consultation workspace
         $assignment->load([
             'doctor',
@@ -178,9 +227,43 @@ class ConsultationController extends Controller
             'queue.triage.vitalSign',
         ]);
 
+        // Load Laboratory Master
+       $laboratories = Laboratory::with([
+            'categories.tests'
+        ])
+        ->orderBy('name')
+        ->get();
+
+         // SOAP Templates
+        $soapTemplates = SoapTemplate::with(['clinic', 'icdCode'])
+            ->where('doctor_id', auth()->id())
+            ->where('active', 'Y')
+            ->orderByRaw("CASE WHEN is_default = 'Y' THEN 0 ELSE 1 END")
+            ->orderBy('name')
+            ->get();
+
         return response()->json([
             'message' => 'Consultation started.',
             'data' => $assignment,
+            'laboratories'=>$laboratories,
+            'soaptemplates' => $soapTemplates,
+            'consultation' => $consultation,
+            
         ]);
     }
+
+    /**Generate Consultation No */
+    private function generateConsultationNo()
+    {
+        $date = now()->format('Ymd');
+
+        $count = Consultation::whereDate('created_at', today())->count() + 1;
+
+        return sprintf(
+            'EVMC-OPD-%s-%04d',
+            $date,
+            $count
+        );
+    }
+
 }
