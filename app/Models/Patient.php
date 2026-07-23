@@ -75,6 +75,12 @@ class Patient extends Model
         return $this->belongsTo(User::class, 'users_id');
     }
 
+    public function getBirthdayAttribute($value)
+    {
+        return $value
+            ? Carbon::parse($value)->format('F d, Y')
+            : null;
+    }
     // ================= API HELPER (VERY USEFUL FOR QR SYSTEM) =================
     public function toSearchResponse()
     {

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\IcdCodeController;
 use App\Http\Controllers\Api\VitalSignController;
 use App\Http\Controllers\Api\LaboratoryRequestController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\MssController;
 
 use LdapRecord\Container;
 use Illuminate\Http\Request;
@@ -81,6 +82,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/settings/templates', [SettingsController::class, 'store']);
 
     Route::put('/settings/templates/{template}', [SettingsController::class, 'update']);
+
+    Route::get('/patients/{patient}/mss', [MssController::class, 'show']);
 
     
 
